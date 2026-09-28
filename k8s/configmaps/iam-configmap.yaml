@@ -12,4 +12,4 @@ data:
       host: "postgresql.minibank.svc.cluster.local"
       port: 5432
       name: "iam_db"
-      ssl_mode: "require"
+      ssl_mode: "disable"

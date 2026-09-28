@@ -32,6 +32,14 @@ spec:
       - name: alembic-migration
         image: ghcr.io/co-windeksolutions/omini_bank-project/iam-service:7f9655e #Ebuka add image path here
         command: ["alembic", "upgrade", "head"]
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://minibank_admin:$(DB_PASSWORD)@postgresql.minibank.svc.cluster.local:5432/iam_db"
         volumeMounts:
         - name: config-volume
           mountPath: /etc/minibank/config
@@ -46,8 +54,24 @@ spec:
         image: ghcr.io/co-windeksolutions/omini_bank-project/iam-service:7f9655e #Ebuka add image path here
         ports:
         - name: http
-          containerPort: 8000
+          containerPort: 8001
         
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://minibank_admin:$(DB_PASSWORD)@postgresql.minibank.svc.cluster.local:5432/iam_db"
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: iam-secret
+              key: jwt-secret-key
+        - name: APP_PORT
+          value: "8001"
+
         # Security hardening
         securityContext:
           allowPrivilegeEscalation: false
@@ -67,14 +91,14 @@ spec:
 
         livenessProbe:
           httpGet:
-            path: /health/liveness
-            port: 8000
+            path: /health
+            port: 8001
           initialDelaySeconds: 10
           periodSeconds: 15
         readinessProbe:
           httpGet:
-            path: /health/readiness
-            port: 8000
+            path: /ready
+            port: 8001
           initialDelaySeconds: 5
           periodSeconds: 10
 

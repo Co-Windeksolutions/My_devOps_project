@@ -30,6 +30,12 @@ spec:
         - name: http
           containerPort: 8000
 
+        env:
+        - name: IAM_SERVICE_URL
+          value: "http://iam-service.minibank.svc.cluster.local:8001"
+        - name: WALLET_SERVICE_URL
+          value: "http://wallet-ledger-service.minibank.svc.cluster.local:8002"
+
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
@@ -48,7 +54,7 @@ spec:
 
         livenessProbe:
           httpGet:
-            path: /health/liveness
+            path: /health
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 15

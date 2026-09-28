@@ -12,4 +12,7 @@ spec:
   ports:
   - name: http
     port: 8000
-    targetPort: 8000
+    targetPort: 8003
+  - name: direct
+    port: 8003
+    targetPort: 8003

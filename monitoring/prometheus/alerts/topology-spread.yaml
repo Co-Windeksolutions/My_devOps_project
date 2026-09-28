@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: topology-spread-alerts
+  namespace: minibank
+  labels:
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+    - name: minibank-topology-spread
+      rules:
+        # =========================================================================
+        # Topology Spread Violation (All replicas scheduled in a single AZ)
+        # =========================================================================
+        # NOTE: Evaluates whether multiple replicas of a service have all landed
+        # in the same AWS Availability Zone, violating high-availability constraints.
+        # Uses standard kube-state-metrics and node labels.
+        # STATUS: Fully functional today. No app-side changes required.
+        - alert: TopologySpreadViolation
+          expr: |
+            (
+              count by (app) (
+                count by (app, zone) (
+                  kube_pod_info{namespace="minibank"}
+                  * on(node) group_left(zone)
+                  label_replace(kube_node_labels{label_topology_kubernetes_io_zone!=""}, "zone", "$1", "label_topology_kubernetes_io_zone", "(.*)")
+                )
+              ) == 1
+            )
+            and
+            (
+              count by (app) (
+                kube_pod_status_phase{namespace="minibank", phase="Running"} == 1
+              ) > 1
+            )
+          for: 10m
+          labels:
+            severity: warning
+            tier: high-availability
+          annotations:
+            summary: "High-availability topology spread violated for {{ $labels.app }}"
+            description: "All running replicas for service {{ $labels.app }} are currently scheduled in a single Availability Zone. An AZ outage would take this service down completely."

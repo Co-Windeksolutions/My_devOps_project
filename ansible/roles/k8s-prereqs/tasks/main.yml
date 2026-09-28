@@ -1,0 +1,55 @@
+---
+- name: Ensure k8s kernel modules load on boot
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+
+- name: Load kernel modules for k8s networking
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Set sysctl params for k8s
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+  loop:
+    - { key: "net.bridge.bridge-nf-call-iptables",  value: "1" }
+    - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { key: "net.ipv4.ip_forward",                 value: "1" }
+
+- name: Add Kubernetes apt repository key
+  apt_key:
+    url: https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key
+    state: present
+
+- name: Add Kubernetes apt repository
+  apt_repository:
+    repo: "deb https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
+    state: present
+
+- name: Install kubeadm, kubelet, kubectl
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    update_cache: true
+
+- name: Hold kubelet, kubeadm, kubectl at current version
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl

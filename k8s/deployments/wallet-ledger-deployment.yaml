@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-ledger-service
+  namespace: minibank
+  labels:
+    app.kubernetes.io/name: wallet-ledger-service
+    app.kubernetes.io/part-of: minibank
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: wallet-ledger-service
+  template:
+    metadata:
+      labels:
+        app: wallet-ledger-service
+    spec:
+      serviceAccountName: wallet-ledger-sa
+
+      # Ensure replicas are spread across AWS Availability Zones
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: wallet-ledger-service
+
+      # 1. DB Migration InitContainer (runs before the app boots)
+      initContainers:
+      - name: alembic-migration
+        image: ghcr.io/co-windeksolutions/omini_bank-project/wallet-service:7f9655e #Ebuka add image path here
+        command: ["alembic", "upgrade", "head"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/minibank/config
+          readOnly: true
+        - name: secret-volume
+          mountPath: /etc/minibank/secrets
+          readOnly: true
+
+      # 2. Main Ledger App Container
+      containers:
+      - name: wallet-ledger-service
+        image: ghcr.io/co-windeksolutions/omini_bank-project/wallet-service:7f9655e #Ebuka add image path here
+        ports:
+        - name: http
+          containerPort: 8000
+        
+        # Hardened container security
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities:
+            drop: ["ALL"]
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/minibank/config
+          readOnly: true
+        - name: secret-volume
+          mountPath: /etc/minibank/secrets
+          readOnly: true
+
+      volumes:
+      - name: config-volume
+        configMap:
+          name: wallet-ledger-config
+      - name: secret-volume
+        secret:
+          secretName: wallet-ledger-secret

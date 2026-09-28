@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wallet-ledger-config
+  namespace: minibank
+data:
+  config.yaml: |
+    server:
+      port: 8000
+      log_level: "INFO"
+    database:
+      host: "postgresql.minibank.svc.cluster.local"
+      port: 5432
+      name: "wallet_db"
+      ssl_mode: "require"
+    broker:
+      host: "rabbitmq.minibank.svc.cluster.local"
+      port: 5672
+      exchange: "minibank.transfers"
+      routing_key: "transfer.completed"

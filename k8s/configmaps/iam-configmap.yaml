@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iam-config
+  namespace: minibank
+data:
+  config.yaml: |
+    server:
+      port: 8000
+      log_level: "INFO"
+    database:
+      host: "postgresql.minibank.svc.cluster.local"
+      port: 5432
+      name: "iam_db"
+      ssl_mode: "require"

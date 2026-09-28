@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: minibank
+data:
+  config.yaml: |
+    server:
+      port: 8000
+      log_level: "INFO"
+    services:
+      iam_url: "http://iam-service.minibank.svc.cluster.local:8000"
+      wallet_url: "http://wallet-ledger-service.minibank.svc.cluster.local:8000"
+      notification_url: "http://notification-service.minibank.svc.cluster.local:8000"
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+    timeouts:
+      connect_timeout_seconds: 5
+      read_timeout_seconds: 10

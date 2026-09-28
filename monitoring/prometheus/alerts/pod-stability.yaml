@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pod-stability-alerts
+  namespace: minibank
+  labels:
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+    - name: minibank-pod-stability
+      rules:
+        # =========================================================================
+        # 1. Pod CrashLooping (>3 container restarts within a 15-minute window)
+        # =========================================================================
+        # NOTE: Relies on kube-state-metrics ('kube_pod_container_status_restarts_total').
+        # STATUS: Fully functional today. No app-side changes required.
+        - alert: PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="minibank"}[15m]) > 3
+          for: 2m
+          labels:
+            severity: critical
+            tier: platform
+          annotations:
+            summary: "Pod {{ $labels.pod }} in namespace minibank is restart cycling"
+            description: "Container {{ $labels.container }} in pod {{ $labels.pod }} restarted {{ $value }} times in the last 15 minutes. Indicates CrashLoopBackOff, application crash, or failing liveness probe."
+
+        # =========================================================================
+        # 2. OOMKilled (Out of Memory termination)
+        # =========================================================================
+        # NOTE: Relies on kube-state-metrics ('kube_pod_container_status_last_terminated_reason').
+        # STATUS: Fully functional today. No app-side changes required.
+        - alert: OOMKilled
+          expr: |
+            kube_pod_container_status_last_terminated_reason{namespace="minibank", reason="OOMKilled"} == 1
+          for: 0m
+          labels:
+            severity: critical
+            tier: platform
+          annotations:
+            summary: "Container {{ $labels.container }} in pod {{ $labels.pod }} was OOMKilled"
+            description: "Container {{ $labels.container }} exceeded its memory limit and was terminated by the Linux kernel OOM killer. Consider increasing resource limits."

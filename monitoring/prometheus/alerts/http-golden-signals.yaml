@@ -1,0 +1,52 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: http-golden-signals-alerts
+  namespace: minibank
+  labels:
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+    - name: minibank-http-golden-signals
+      rules:
+        # =========================================================================
+        # 1. High HTTP Error Rate (>5% 5xx responses over a 5-minute window)
+        # =========================================================================
+        # NOTE: This alert depends on the 'http_requests_total' counter metric exposed
+        # by FastAPI middleware (e.g. prometheus-fastapi-instrumentator).
+        # STATUS: Scaffolded — will become active once app-side /metrics is implemented.
+        - alert: HighHttpErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{namespace="minibank", status=~"5.."}[5m])) by (app, service)
+              /
+              sum(rate(http_requests_total{namespace="minibank"}[5m])) by (app, service)
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            tier: application
+          annotations:
+            summary: "Elevated HTTP 5xx error rate on {{ $labels.app }}"
+            description: "Service {{ $labels.app }} has an HTTP 5xx error rate of {{ $value | humanizePercentage }} (threshold > 5%) over the last 5 minutes."
+
+        # =========================================================================
+        # 2. High HTTP Latency (p95 latency > 500ms over a 5-minute window)
+        # =========================================================================
+        # NOTE: This alert depends on the 'http_request_duration_seconds_bucket' histogram metric.
+        # STATUS: Scaffolded — will become active once app-side /metrics is implemented.
+        - alert: HighLatency
+          expr: |
+            histogram_quantile(
+              0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="minibank"}[5m])) by (le, app, service)
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            tier: application
+          annotations:
+            summary: "High p95 latency on {{ $labels.app }}"
+            description: "Service {{ $labels.app }} p95 response duration is {{ $value | humanizeDuration }} (threshold > 500ms) over the last 5 minutes."

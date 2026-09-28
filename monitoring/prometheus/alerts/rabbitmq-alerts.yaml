@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbitmq-alerts
+  namespace: minibank
+  labels:
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+    - name: minibank-rabbitmq-rules
+      rules:
+        # =========================================================================
+        # Notification Queue Lag (Queue depth > 500 or 0 active consumers with pending messages)
+        # =========================================================================
+        # NOTE: Relies on metrics emitted by the RabbitMQ Prometheus plugin (built into RabbitMQ 3.8+).
+        # STATUS: Fully functional once RabbitMQ ServiceMonitor scrapes the broker port 15692.
+        - alert: NotificationQueueLag
+          expr: |
+            (rabbitmq_queue_messages_ready{queue="notifications.events"} > 500)
+            or
+            (rabbitmq_queue_consumers{queue="notifications.events"} == 0 and rabbitmq_queue_messages_ready{queue="notifications.events"} > 0)
+          for: 5m
+          labels:
+            severity: warning
+            tier: messaging
+          annotations:
+            summary: "Notification queue lag or consumer failure on RabbitMQ"
+            description: "The 'notifications.events' queue has {{ $value }} messages pending or has 0 active consumers. Notification service may be stalled or crashed."

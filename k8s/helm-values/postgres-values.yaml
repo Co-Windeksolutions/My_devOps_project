@@ -1,0 +1,29 @@
+# Values for bitnami/postgresql
+#
+# The chart creates the database named in global.postgresql.auth.database
+# (iam_db) automatically. wallet_db is created via the initdb script mounted
+# from the postgres-initdb-scripts ConfigMap below, which runs once on first
+# boot when the data directory is empty.
+global:
+  postgresql:
+    auth:
+      username: "minibank_admin"
+      # Primary database created by the chart on first boot.
+      database: "iam_db"
+      existingSecret: "postgres-credentials"
+
+primary:
+  initdb:
+    # Mount the ConfigMap at /docker-entrypoint-initdb.d/ so the chart runs
+    # the SQL script that creates wallet_db on first boot.
+    scriptsConfigMap: "postgres-initdb-scripts"
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

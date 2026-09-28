@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: iam-servicemonitor
+  namespace: minibank
+  labels:
+    app.kubernetes.io/name: iam-service
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+spec:
+  # Discovers the iam-service in the minibank namespace
+  selector:
+    matchLabels:
+      app: iam-service
+  namespaceSelector:
+    matchNames:
+      - minibank
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

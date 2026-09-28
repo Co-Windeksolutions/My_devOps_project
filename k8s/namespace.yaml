@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minibank
+  labels:
+    name: minibank
+    environment: dev

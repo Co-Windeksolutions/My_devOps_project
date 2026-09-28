@@ -1,0 +1,150 @@
+# Helm Values for kube-prometheus-stack (prometheus-community/kube-prometheus-stack)
+# Repository: https://prometheus-community.github.io/helm-charts
+# Chart: kube-prometheus-stack
+
+# ------------------------------------------------------------------------------
+# Global Settings
+# ------------------------------------------------------------------------------
+defaultRules:
+  create: true
+  rules:
+    etcd: false      # Self-managed k8s or EKS managed control plane
+    kubeScheduler: false
+    kubeControllerManager: false
+
+# ------------------------------------------------------------------------------
+# Prometheus Operator
+# ------------------------------------------------------------------------------
+prometheusOperator:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
+
+# ------------------------------------------------------------------------------
+# Prometheus Instance
+# ------------------------------------------------------------------------------
+prometheus:
+  enabled: true
+  prometheusSpec:
+    # Retention period: 7 days or 5Gi max storage.
+    # Rationale: For a portfolio/demo cluster, long-term historical retention (30-90 days)
+    # wastes disk on small EBS volumes (gp3 20-50GiB). 7 days provides more than enough
+    # window to evaluate load tests (k6), verify alerting rules, and demo Grafana dashboards.
+    retention: 7d
+    retentionSize: 5GiB
+
+    # Resource sizing tailored for a portfolio cluster (t3.medium / t3.small nodes)
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+    # CRD Discovery: Setting these to false ensures Prometheus discovers ServiceMonitors
+    # and PrometheusRules across ALL namespaces without requiring the release label match.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # Scrape metrics across all namespaces (specifically 'minibank')
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+
+    # Storage specification using default StorageClass (gp2 / gp3 on AWS)
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+# ------------------------------------------------------------------------------
+# Alertmanager
+# ------------------------------------------------------------------------------
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    retention: 120h
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
+
+# ------------------------------------------------------------------------------
+# Grafana
+# ------------------------------------------------------------------------------
+grafana:
+  enabled: true
+  adminPassword: "admin" # Change via Secret in production / Phase 6
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Sidecar container that automatically discovers ConfigMaps labeled
+  # 'grafana_dashboard: "1"' and loads them into Grafana without restarting pods.
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL
+      label: grafana_dashboard
+      labelValue: "1"
+    datasources:
+      enabled: true
+      defaultDatasourceEnabled: true
+
+  persistence:
+    enabled: true
+    size: 5Gi
+
+# ------------------------------------------------------------------------------
+# Kubernetes State Metrics (kube-state-metrics)
+# ------------------------------------------------------------------------------
+# Exposes cluster-level object metrics: pod phase, container restart counts,
+# resource limits, and replica sets. Used by pod stability and HA alerts.
+kubeStateMetrics:
+  enabled: true
+
+# ------------------------------------------------------------------------------
+# Node Exporter (DaemonSet)
+# ------------------------------------------------------------------------------
+# NOTE ON ARCHITECTURAL OVERLAP:
+# The Ansible 'monitoring-agent' role currently installs 'prometheus-node-exporter'
+# directly on the EC2 host via apt as a systemd service.
+#
+# If running a pure Kubernetes cluster where all workloads are containerized,
+# the DaemonSet below is the cloud-native standard (managed, scraped, and updated
+# declaratively by Kubernetes).
+#
+# To avoid running two instances of Node Exporter on the same host (binding port 9100),
+# choose ONE source of truth:
+#   Option A (Recommended for K8s): Keep nodeExporter.enabled = true here, and disable
+#   the Ansible monitoring-agent role.
+#   Option B: Keep Ansible role, and set nodeExporter.enabled = false here.
+nodeExporter:
+  enabled: true
+  operatingSystems:
+    linux:
+      enabled: true

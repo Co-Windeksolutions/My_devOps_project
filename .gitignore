@@ -1,0 +1,45 @@
+# === Terraform secrets and local state — NEVER commit these ===
+
+# Auto-loaded variable files — commonly used for local secrets during development.
+# If you put a password or API key in one of these and it isn't listed here,
+# it will be permanently recorded in git history, even if you delete it later.
+*.auto.tfvars
+secrets.tfvars
+secrets.*.tfvars
+
+# Local Terraform state files — these contain a snapshot of your entire infrastructure
+# including any values that were written to resource attributes (which can include secrets).
+# State should always live in the remote S3 backend, never locally.
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+# Terraform working directory — created by 'terraform init', contains provider binaries
+# and cached module downloads. Large, reproducible, no need to commit.
+**/.terraform/
+.terraform.lock.hcl
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override files — used for local dev overrides, shouldn't be shared
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# === Editor and OS noise ===
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# === Kubernetes secrets — NEVER commit real secret files ===
+# Real secret files (*.yaml) are gitignored — fill values locally and apply manually.
+# Only *.yaml.template files (with CHANGE_ME placeholders) are committed as reference.
+k8s/secrets/*.yaml
+
+# SSH private keys — should never be in the repo
+*.pem

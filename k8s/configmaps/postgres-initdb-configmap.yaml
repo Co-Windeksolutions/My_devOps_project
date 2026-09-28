@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb-scripts
+  namespace: minibank
+data:
+  # This script runs once on the very first boot of the PostgreSQL StatefulSet
+  # (when the data directory is empty). It creates both application databases
+  # and grants the minibank_admin user full ownership of each.
+  #
+  # The bitnami/postgresql chart automatically creates the database specified
+  # in global.postgresql.auth.database (iam_db) before these scripts run,
+  # so we only need to explicitly create wallet_db here.
+  #
+  # Reference: https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+  # under "Initializing a fresh instance" — initdb scripts are mounted at
+  # /docker-entrypoint-initdb.d/ and executed in alphabetical filename order.
+  01_create_wallet_db.sql: |
+    -- Create the wallet/ledger database if it does not already exist.
+    -- The IF NOT EXISTS guard makes this script safe to re-run.
+    SELECT 'CREATE DATABASE wallet_db OWNER minibank_admin'
+    WHERE NOT EXISTS (
+      SELECT FROM pg_database WHERE datname = 'wallet_db'
+    )\gexec
+
+    -- Ensure the application user has all privileges on wallet_db.
+    GRANT ALL PRIVILEGES ON DATABASE wallet_db TO minibank_admin;

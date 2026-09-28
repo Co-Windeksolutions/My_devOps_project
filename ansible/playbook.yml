@@ -1,0 +1,9 @@
+---
+- name: Configure all k8s nodes
+  hosts: k8s_nodes
+  become: true          # sudo privilege on the remote host
+  roles:
+    - common
+    - docker
+    - k8s-prereqs
+    - monitoring-agent

@@ -1,0 +1,45 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: minibank-operator-role
+  namespace: minibank
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+# Per-service Roles — explicitly empty rules (zero K8s API permissions).
+# All 4 services run with automountServiceAccountToken: false and do not
+# need to call the Kubernetes API at any point. The Role + RoleBinding pair
+# is declared explicitly so RBAC audits have a named, bounded policy for
+# each ServiceAccount rather than an implicit gap.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: api-gateway-role
+  namespace: minibank
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: iam-role
+  namespace: minibank
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: wallet-ledger-role
+  namespace: minibank
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: notification-role
+  namespace: minibank
+rules: []

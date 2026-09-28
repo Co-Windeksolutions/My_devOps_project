@@ -1,0 +1,112 @@
+name: CI/CD Pipeline — Deploy
+
+# Triggered automatically by app-repo after it builds and pushes new images.
+# Can also be triggered manually from the GitHub Actions UI for emergency deploys.
+on:
+  repository_dispatch:
+    types: [app-deploy]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (short SHA, e.g. a1b2c3d)'
+        required: true
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false   # never cancel a running deploy — let it finish
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_PREFIX: ghcr.io/dannerrebecca464-lgtm/app-repo
+
+jobs:
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: self-hosted   # runner registered to devops-repo on control-plane
+
+    steps:
+      - name: Checkout devops-repo
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: tag
+        # repository_dispatch sends the tag in the payload.
+        # workflow_dispatch (manual) reads it from the input field.
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "IMAGE_TAG=${{ github.event.client_payload.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify cluster connection
+        run: kubectl get nodes
+
+      - name: Patch image tags in manifests
+        # The 'g' flag replaces ALL occurrences per file.
+        # iam and wallet-ledger each have 2 image lines (initContainer + main container)
+        # — both get updated in one sed pass per file.
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.IMAGE_TAG }}
+        run: |
+          IP="${{ env.IMAGE_PREFIX }}"
+          sed -i "s|${IP}/api-gateway:.*|${IP}/api-gateway:${IMAGE_TAG}|g"                   k8s/deployments/api-gateway-deployment.yaml
+          sed -i "s|${IP}/iam-service:.*|${IP}/iam-service:${IMAGE_TAG}|g"                   k8s/deployments/iam-deployment.yaml
+          sed -i "s|${IP}/wallet-service:.*|${IP}/wallet-service:${IMAGE_TAG}|g"             k8s/deployments/wallet-ledger-deployment.yaml
+          sed -i "s|${IP}/notification-service:.*|${IP}/notification-service:${IMAGE_TAG}|g" k8s/deployments/notification-deployment.yaml
+
+      - name: Apply namespace
+        run: kubectl apply -f k8s/namespace.yaml
+
+      - name: Apply RBAC
+        run: kubectl apply -f k8s/rbac/
+
+      - name: Apply ConfigMaps
+        run: kubectl apply -f k8s/configmaps/
+
+      # NOTE: Secrets are NOT applied by this pipeline.
+      # They contain real passwords and must never be committed to Git.
+      # Apply them once manually:
+      #   1. cp k8s/secrets/iam-secrets.yaml.template k8s/secrets/iam-secrets.yaml
+      #   2. Fill in real values
+      #   3. kubectl apply -f k8s/secrets/
+      #   4. rm k8s/secrets/*.yaml  — DO NOT commit them
+
+      - name: Deploy PostgreSQL
+        # upgrade --install is idempotent — installs on first run, upgrades on re-runs
+        # Requires postgres-credentials secret to already exist in the cluster
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami --force-update
+          helm upgrade --install postgresql bitnami/postgresql \
+            --namespace minibank \
+            --values k8s/helm-values/postgres-values.yaml \
+            --wait --timeout 5m
+
+      - name: Deploy RabbitMQ
+        # Requires rabbitmq-credentials secret to already exist in the cluster
+        run: |
+          helm upgrade --install rabbitmq bitnami/rabbitmq \
+            --namespace minibank \
+            --values k8s/helm-values/rabbitmq-values.yaml \
+            --wait --timeout 5m
+
+      - name: Apply Deployments
+        run: kubectl apply -f k8s/deployments/
+
+      - name: Apply Services
+        run: kubectl apply -f k8s/services/
+
+      - name: Apply Ingress
+        run: kubectl apply -f k8s/ingress/
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/api-gateway        -n minibank --timeout=180s
+          kubectl rollout status deployment/iam-service        -n minibank --timeout=180s
+          kubectl rollout status deployment/wallet-ledger-service -n minibank --timeout=180s
+          kubectl rollout status deployment/notification-service  -n minibank --timeout=180s
+
+      - name: Show pod status
+        run: kubectl get pods -n minibank -o wide

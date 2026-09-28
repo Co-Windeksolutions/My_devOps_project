@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: notification-servicemonitor
+  namespace: minibank
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+spec:
+  # Discovers the notification-service in the minibank namespace
+  selector:
+    matchLabels:
+      app: notification-service
+  namespaceSelector:
+    matchNames:
+      - minibank
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s

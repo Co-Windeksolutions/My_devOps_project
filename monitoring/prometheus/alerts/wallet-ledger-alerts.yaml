@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: wallet-ledger-alerts
+  namespace: minibank
+  labels:
+    app.kubernetes.io/part-of: minibank
+    release: kube-prometheus-stack
+    role: alert-rules
+spec:
+  groups:
+    - name: minibank-wallet-ledger-business-rules
+      rules:
+        # =========================================================================
+        # Transfer Failure Rate Elevated (>5% failed transfers over 5 minutes)
+        # =========================================================================
+        # NOTE: This alert tracks the business-critical ledger metric 'wallet_transfers_total'
+        # with label status="failed" vs total transfers.
+        # STATUS: Scaffolded — will become active once custom business metrics are added to Wallet/Ledger.
+        - alert: TransferFailureRateElevated
+          expr: |
+            (
+              sum(rate(wallet_transfers_total{namespace="minibank", status="failed"}[5m]))
+              /
+              sum(rate(wallet_transfers_total{namespace="minibank"}[5m]))
+            ) > 0.05
+          for: 3m
+          labels:
+            severity: critical
+            tier: business-logic
+          annotations:
+            summary: "Elevated financial transfer failure rate in Wallet/Ledger"
+            description: "Wallet/Ledger service is experiencing a {{ $value | humanizePercentage }} transfer failure rate over the last 5 minutes. Potential database locking, insufficient balance cascade, or broker publishing failure."

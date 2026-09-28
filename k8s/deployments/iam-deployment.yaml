@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iam-service
+  namespace: minibank
+  labels:
+    app.kubernetes.io/name: iam-service
+    app.kubernetes.io/part-of: minibank
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: iam-service
+  template:
+    metadata:
+      labels:
+        app: iam-service
+    spec:
+      serviceAccountName: iam-sa
+
+      # 1. Multi-AZ High Availability Spread
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: iam-service
+
+      # 2. Schema Migration InitContainer
+      initContainers:
+      - name: alembic-migration
+        image: ghcr.io/co-windeksolutions/omini_bank-project/iam-service:7f9655e #Ebuka add image path here
+        command: ["alembic", "upgrade", "head"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/minibank/config
+          readOnly: true
+        - name: secret-volume
+          mountPath: /etc/minibank/secrets
+          readOnly: true
+
+      # 3. Main Application Container
+      containers:
+      - name: iam-service
+        image: ghcr.io/co-windeksolutions/omini_bank-project/iam-service:7f9655e #Ebuka add image path here
+        ports:
+        - name: http
+          containerPort: 8000
+        
+        # Security hardening
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities:
+            drop: ["ALL"]
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/minibank/config
+          readOnly: true
+        - name: secret-volume
+          mountPath: /etc/minibank/secrets
+          readOnly: true
+
+      # 4. Storage Volumes
+      volumes:
+      - name: config-volume
+        configMap:
+          name: iam-config
+      - name: secret-volume
+        secret:
+          secretName: iam-secret

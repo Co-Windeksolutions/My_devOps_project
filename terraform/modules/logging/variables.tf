@@ -23,6 +23,6 @@ Controls whether Terraform is allowed to delete the log bucket even when it cont
   true (recommended for dev): 'terraform destroy' wipes the bucket contents automatically.
   Convenient for teardown in non-production environments.
 EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }

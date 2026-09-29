@@ -47,9 +47,9 @@ module "security" {
 module "logging" {
   source = "../../modules/logging"
 
-  environment              = var.environment
-  project                  = var.project
-  vpc_id                   = module.vpc.vpc_id
+  environment = var.environment
+  project     = var.project
+  vpc_id      = module.vpc.vpc_id
   # true for dev: terraform destroy can wipe the bucket automatically.
   # Prod environments should pass false (bucket must be emptied manually — prevents accidental log loss).
   log_bucket_force_destroy = true
@@ -63,14 +63,14 @@ module "ec2" {
 
   environment        = var.environment
   ami                = data.aws_ami.ubuntu.id
-  instance_names     = var.instance_names   # ["control-plane", "worker-1", "worker-2"]
-  instance_type      = var.instance_type    # t3.medium — kubeadm minimum
+  instance_names     = var.instance_names # ["control-plane", "worker-1", "worker-2"]
+  instance_type      = var.instance_type  # t3.medium — kubeadm minimum
   key_name           = var.key_name
-  subnet_ids         = module.vpc.private_subnets  # spread across AZs via idx % len
+  subnet_ids         = module.vpc.private_subnets # spread across AZs via idx % len
   security_group_ids = [module.security.app_node_sg_id]
   monitoring         = var.enable_monitoring
   root_block_device  = var.root_block_device
-    source_dest_check  = false  # required for Calico VXLANCrossSubnet between same-subnet nodes
+  source_dest_check  = false # required for Calico VXLANCrossSubnet between same-subnet nodes
 }
 
 # Bastion host — separate from the cluster nodes intentionally:
@@ -89,7 +89,7 @@ module "bastion" {
   subnet_ids                  = module.vpc.public_subnets
   security_group_ids          = [module.security.bastion_sg_id]
   monitoring                  = false
-  associate_public_ip_address = true  # Bastion needs a public IP — it is the SSH entry point
+  associate_public_ip_address = true # Bastion needs a public IP — it is the SSH entry point
 }
 
 module "secrets" {

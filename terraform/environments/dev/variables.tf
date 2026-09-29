@@ -59,6 +59,19 @@ variable "instance_type" {
   default     = "t3.micro"
 }
 
+variable "bastion_instance_type" {
+  description = "EC2 instance type for bastion host"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "root_block_device" {
+  description = "Root block device configuration for cluster nodes"
+  type        = list(any)
+  default     = []
+}
+
+
 variable "key_name" {
   description = "Name of the EC2 Key Pair to use for SSH access (must exist in AWS already)"
   type        = string

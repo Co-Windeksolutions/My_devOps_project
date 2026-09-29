@@ -17,8 +17,15 @@ allowed_ssh_cidrs = ["0.0.0.0/0"]
 # control-plane + 2 workers — kubeadm hard-fails with <2 vCPU or <1700 MB RAM,
 # so t3.micro (1 vCPU / 1 GB) is unusable here. t3.medium = 2 vCPU / 4 GB.
 # Workers also run Postgres + RabbitMQ + FastAPI pods so they need headroom too.
-instance_names    = ["control-plane", "worker-1", "worker-2"]
-instance_type     = "t3.medium"
+instance_names        = ["control-plane", "worker-1", "worker-2"]
+instance_type         = "t3.medium"
+bastion_instance_type = "t3.micro"
+root_block_device = [
+  {
+    volume_size = 30
+    volume_type = "gp3"
+  }
+]
 key_name          = "dev-key"
 enable_monitoring = false
 

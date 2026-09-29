@@ -69,6 +69,8 @@ module "ec2" {
   subnet_ids         = module.vpc.private_subnets  # spread across AZs via idx % len
   security_group_ids = [module.security.app_node_sg_id]
   monitoring         = var.enable_monitoring
+  root_block_device  = var.root_block_device
+    source_dest_check  = false  # required for Calico VXLANCrossSubnet between same-subnet nodes
 }
 
 # Bastion host — separate from the cluster nodes intentionally:
@@ -82,7 +84,7 @@ module "bastion" {
   environment                 = var.environment
   ami                         = data.aws_ami.ubuntu.id
   instance_names              = ["bastion"]
-  instance_type               = "t3.micro"
+  instance_type               = var.bastion_instance_type
   key_name                    = var.key_name
   subnet_ids                  = module.vpc.public_subnets
   security_group_ids          = [module.security.bastion_sg_id]

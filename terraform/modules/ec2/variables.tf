@@ -64,3 +64,15 @@ variable "associate_public_ip_address" {
   type        = bool
   default     = false
 }
+
+variable "root_block_device" {
+  description = "Customize details about the root block device of the instance. Takes a list of maps."
+  type        = list(any)
+  default     = []
+}
+
+variable "source_dest_check" {
+  description = "Whether AWS drops traffic whose source/destination doesn't match the instance. Must be false for Kubernetes nodes running Calico, whose overlay traffic uses pod IPs. Leave true for the bastion."
+  type        = bool
+  default     = true
+}

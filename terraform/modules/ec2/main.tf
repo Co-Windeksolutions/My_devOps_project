@@ -23,6 +23,8 @@ module "ec2_instance" {
   iam_instance_profile        = var.iam_instance_profile
   user_data                   = var.user_data
   associate_public_ip_address = var.associate_public_ip_address
+  root_block_device           = var.root_block_device
+  source_dest_check           = var.source_dest_check
 
   tags = merge(
     {

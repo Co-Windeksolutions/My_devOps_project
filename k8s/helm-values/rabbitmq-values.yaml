@@ -24,3 +24,6 @@ persistence:
 
 service:
   clusterIP: "10.104.114.242"
+
+plugins: rabbitmq_management rabbitmq_federation rabbitmq_prometheus
+extraPlugins: ""

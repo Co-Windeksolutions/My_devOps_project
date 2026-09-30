@@ -2,6 +2,11 @@
 auth:
   username: "minibank_broker"
   existingPasswordSecret: "rabbitmq-credentials"
+  existingErlangSecret: "rabbitmq-credentials"
+
+clustering:
+  enabled: false
+  addressType: ip
 
 resources:
   requests:
@@ -13,4 +18,9 @@ resources:
 
 persistence:
   enabled: true
+  existingClaim: "rabbitmq-data-rabbitmq-0"
+  subPath: "mnesia"
   size: 8Gi
+
+service:
+  clusterIP: "10.104.114.242"

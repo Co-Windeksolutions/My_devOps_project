@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: notification-service
     app.kubernetes.io/part-of: minibank
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: notification-service

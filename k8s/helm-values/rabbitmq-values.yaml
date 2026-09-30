@@ -1,4 +1,6 @@
 # Values for bitnami/rabbitmq
+image:
+  repository: bitnamilegacy/rabbitmq
 auth:
   username: "minibank_broker"
   existingPasswordSecret: "rabbitmq-credentials"

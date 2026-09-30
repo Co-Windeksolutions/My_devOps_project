@@ -88,6 +88,7 @@ jobs:
         # Requires rabbitmq-credentials secret to already exist in the cluster
         run: |
           helm upgrade --install rabbitmq bitnami/rabbitmq \
+            --version 14.7.0 \
             --namespace minibank \
             --values k8s/helm-values/rabbitmq-values.yaml \
             --wait --timeout 5m

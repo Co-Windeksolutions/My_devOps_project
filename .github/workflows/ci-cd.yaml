@@ -108,6 +108,24 @@ jobs:
       - name: Apply Prometheus alert rules
         run: kubectl apply -f monitoring/prometheus/alerts/
 
+      - name: Apply Grafana dashboards
+        run: |
+          kubectl create configmap minibank-overview-dashboard \
+            --from-file=minibank-overview.json=monitoring/grafana/dashboards/minibank-overview.json \
+            -n monitoring \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl label configmap minibank-overview-dashboard grafana_dashboard=1 \
+            -n monitoring --overwrite
+
+          kubectl create configmap wallet-ledger-dashboard \
+            --from-file=wallet-ledger-metrics.json=monitoring/grafana/dashboards/wallet-ledger-metrics.json \
+            -n monitoring \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          kubectl label configmap wallet-ledger-dashboard grafana_dashboard=1 \
+            -n monitoring --overwrite
+
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/api-gateway        -n minibank --timeout=180s

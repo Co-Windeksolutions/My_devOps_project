@@ -102,6 +102,12 @@ jobs:
       - name: Apply Ingress
         run: kubectl apply -f k8s/ingress/
 
+      - name: Apply Prometheus ServiceMonitors
+        run: kubectl apply -f monitoring/prometheus/servicemonitors/
+
+      - name: Apply Prometheus alert rules
+        run: kubectl apply -f monitoring/prometheus/alerts/
+
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/api-gateway        -n minibank --timeout=180s

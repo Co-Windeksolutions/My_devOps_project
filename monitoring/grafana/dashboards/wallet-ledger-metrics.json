@@ -22,12 +22,12 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 1,
-      "title": "Business Ledger Performance (Scaffolded — Populates once app /metrics lands)",
+      "title": "Business Ledger Performance",
       "type": "row"
     },
     {
       "datasource": "Prometheus",
-      "description": "NOTE: Depends on custom counter 'wallet_transfers_total' emitted by Wallet/Ledger service. Will populate once app instrumentation is added.",
+      "description": "Requires the wallet service to emit the wallet_transfers_total business metric.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -66,12 +66,12 @@
           "refId": "A"
         }
       ],
-      "title": "Total Transfers Processed (1h) [Waiting on App /metrics]",
+      "title": "Total Transfers Processed (1h) [Requires wallet_transfers_total]",
       "type": "stat"
     },
     {
       "datasource": "Prometheus",
-      "description": "NOTE: Percentage of fund transfers completed successfully vs failed due to ledger/balance/system errors.",
+      "description": "Requires wallet_transfers_total with a status label such as success or failure.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -113,12 +113,12 @@
           "refId": "A"
         }
       ],
-      "title": "Transfer Success Rate % [Waiting on App /metrics]",
+      "title": "Transfer Success Rate % [Requires wallet_transfers_total]",
       "type": "stat"
     },
     {
       "datasource": "Prometheus",
-      "description": "NOTE: Financial transfer throughput in operations per second, broken down by success/failure status.",
+      "description": "Requires wallet_transfers_total with a status label.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -145,7 +145,7 @@
           "refId": "A"
         }
       ],
-      "title": "Transfer Throughput (TPS) [Waiting on App /metrics]",
+      "title": "Transfer Throughput (TPS) [Requires wallet_transfers_total]",
       "type": "timeseries"
     },
     {
@@ -157,7 +157,7 @@
     },
     {
       "datasource": "Prometheus",
-      "description": "Rate of transfer events published to RabbitMQ exchange vs consumed by Notification service.",
+      "description": "Rate of messages published to RabbitMQ queues. The current RabbitMQ Prometheus exporter exposes aggregate queue metrics without a queue label.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -178,26 +178,18 @@
         {
           "datasource": "Prometheus",
           "editorMode": "code",
-          "expr": "rate(rabbitmq_queue_messages_published_total{queue=\"notifications.events\"}[5m])",
-          "legendFormat": "Published (Wallet/Ledger)",
+          "expr": "rate(rabbitmq_queue_messages_published_total[5m])",
+          "legendFormat": "Published Messages/sec",
           "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": "Prometheus",
-          "editorMode": "code",
-          "expr": "rate(rabbitmq_queue_messages_delivered_total{queue=\"notifications.events\"}[5m])",
-          "legendFormat": "Delivered (Notification)",
-          "range": true,
-          "refId": "B"
         }
       ],
-      "title": "RabbitMQ Event Flow: Publish vs Delivery",
+      "title": "RabbitMQ Published Message Rate",
       "type": "timeseries"
     },
     {
       "datasource": "Prometheus",
-      "description": "Total pending messages in notifications.events queue. Growth indicates consumer lag.",
+      "description": "Total ready RabbitMQ messages reported by the Prometheus exporter. The current exporter does not expose a queue label, so this represents the aggregate queue backlog rather than a queue-specific series.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -226,13 +218,13 @@
         {
           "datasource": "Prometheus",
           "editorMode": "code",
-          "expr": "rabbitmq_queue_messages_ready{queue=\"notifications.events\"}",
-          "legendFormat": "Pending Queue Depth",
+          "expr": "rabbitmq_queue_messages_ready",
+          "legendFormat": "Ready Messages",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Notification Queue Backlog Depth",
+      "title": "RabbitMQ Queue Backlog",
       "type": "timeseries"
     },
     {

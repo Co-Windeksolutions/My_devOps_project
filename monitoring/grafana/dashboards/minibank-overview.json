@@ -230,7 +230,7 @@
     },
     {
       "datasource": "Prometheus",
-      "description": "NOTE: Depends on prometheus-fastapi-instrumentator or prometheus_client in app-repo exposing 'http_requests_total'. Will populate automatically once app images include instrumentation.",
+      "description": "HTTP request rate from the application Prometheus metrics.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -251,18 +251,18 @@
         {
           "datasource": "Prometheus",
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{namespace=\"minibank\"}[5m])) by (app)",
-          "legendFormat": "{{ app }} (RPS)",
+          "expr": "sum(rate(http_requests_total{namespace=\"minibank\"}[5m])) by (service)",
+          "legendFormat": "{{ service }} (RPS)",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "HTTP Request Rate (RPS) per Microservice [Waiting on App /metrics]",
+      "title": "HTTP Request Rate (RPS) per Microservice",
       "type": "timeseries"
     },
     {
       "datasource": "Prometheus",
-      "description": "NOTE: Depends on app /metrics. Displays percentage of requests resulting in HTTP 5xx errors.",
+      "description": "Percentage of HTTP requests resulting in 5xx responses.",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -283,13 +283,13 @@
         {
           "datasource": "Prometheus",
           "editorMode": "code",
-          "expr": "sum(rate(http_requests_total{namespace=\"minibank\", status=~\"5..\"}[5m])) by (app) / sum(rate(http_requests_total{namespace=\"minibank\"}[5m])) by (app)",
-          "legendFormat": "{{ app }} 5xx %",
+          "expr": "sum(rate(http_requests_total{namespace=\"minibank\",status_code=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total{namespace=\"minibank\"}[5m])) by (service)",
+          "legendFormat": "{{ service }} 5xx %",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "HTTP 5xx Error Rate % [Waiting on App /metrics]",
+      "title": "HTTP 5xx Error Rate %",
       "type": "timeseries"
     }
   ],

@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: api-gateway
     app.kubernetes.io/part-of: minibank
-    release: kube-prometheus-stack
+    release: monitoring
 spec:
   # Discovers the api-gateway-service in the minibank namespace
   selector:

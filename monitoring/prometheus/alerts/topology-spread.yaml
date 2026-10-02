@@ -5,7 +5,7 @@ metadata:
   namespace: minibank
   labels:
     app.kubernetes.io/part-of: minibank
-    release: kube-prometheus-stack
+    release: monitoring
     role: alert-rules
 spec:
   groups:
